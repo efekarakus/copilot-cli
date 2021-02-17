@@ -1,0 +1,103 @@
+# See https://docs.amazonaws.cn/en_us/vpc/latest/userguide/vpce-interface.html
+# Similar public link: https://github.com/aws-samples/amazon-sagemaker-studio-vpc-networkfirewall/blob/1e4ce31719a3a6c7a3c62cc33dde88df86418102/cfn_templates/vpc.yaml#L265-L281
+VPCEndpointSecurityGroup:
+  Condition: CreateVPCEndpoints
+  Type: AWS::EC2::SecurityGroup
+  Properties:
+    GroupDescription: Security Group to allow use of VPC Endpoints.
+    VpcId: !Ref VPC
+    SecurityGroupIngress:
+      - IpProtocol: tcp
+        Description: HTTPS
+        FromPort: 443
+        ToPort: 443
+        CidrIp: 10.0.0.0/0 # within VPC.
+
+# Allow ingress traffic from VPC endpoints to our containers.
+IngressFromVPCEndpoints:
+  Condition: CreateVPCEndpoints
+  Type: AWS::EC2::SecurityGroupIngress
+  Properties:
+    Description: Ingress from VPC endpoints.
+    GroupId: !Ref 'EnvironmentSecurityGroup' # Security group used by the tasks in our services.
+    IpProtocol: -1
+    SourceSecurityGroupId: !Ref 'VPCEndpointSecurityGroup'
+
+##############################################################
+# Basic VPC endpoints needed to get Amazon ECS tasks running.#
+##############################################################
+S3VPCEndpoint:
+  Type: AWS::EC2::VPCEndpoint
+  Properties:
+    VpcEndpointType: Gateway
+    ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+    VpcId: !Ref VPC
+    RouteTableIds:
+      - !Ref 'PrivateRouteTableOne'
+      - !Ref 'PrivateRouteTableTwo'
+
+EcrApiVPCEndpoint:
+  Condition: CreateVPCEndpoints
+  Type: AWS::EC2::VPCEndpoint
+  Properties:
+    VpcEndpointType: Interface
+    SubnetIds:
+      - !Ref PrivateSubnetOne
+      - !Ref PrivateSubnetTwo
+    ServiceName: !Sub com.amazonaws.${AWS::Region}.ecr.api
+    VpcId: !Ref VPC
+    PrivateDnsEnabled: true
+    SecurityGroupIds:
+      - !Ref VPCEndpointSecurityGroup
+
+EcrDkrVPCEndpoint:
+  Type: AWS::EC2::VPCEndpoint
+  Properties:
+    VpcEndpointType: Interface
+    SubnetIds:
+      - !Ref PrivateSubnetOne
+      - !Ref PrivateSubnetTwo
+    ServiceName: !Sub com.amazonaws.${AWS::Region}.ecr.dkr
+    VpcId: !Ref VPC
+    PrivateDnsEnabled: true
+    SecurityGroupIds:
+      - !Ref VPCEndpointSecurityGroup
+
+LogVPCEndpoint:
+  Type: AWS::EC2::VPCEndpoint
+  Properties:
+    VpcEndpointType: Interface
+    SubnetIds:
+      - !Ref PrivateSubnetOne
+      - !Ref PrivateSubnetTwo
+    ServiceName: !Sub com.amazonaws.${AWS::Region}.logs
+    VpcId: !Ref VPC
+    PrivateDnsEnabled: true
+    SecurityGroupIds:
+      - !Ref VPCEndpointSecurityGroup
+
+SSMVPCEndpoint:
+  Type: AWS::EC2::VPCEndpoint
+  Properties:
+    VpcEndpointType: Interface
+    SubnetIds:
+      - !Ref PrivateSubnetOne
+      - !Ref PrivateSubnetTwo
+    ServiceName: !Sub com.amazonaws.${AWS::Region}.ssm
+    VpcId: !Ref VPC
+    PrivateDnsEnabled: true
+    SecurityGroupIds:
+      - !Ref VPCEndpointSecurityGroup
+
+SecretsManagerVPCEndpoint:
+  Type: AWS::EC2::VPCEndpoint
+  Properties:
+    VpcEndpointType: Interface
+    SubnetIds:
+      - !Ref PrivateSubnetOne
+      - !Ref PrivateSubnetTwo
+    ServiceName: !Sub com.amazonaws.${AWS::Region}.secretsmanager
+    VpcId: !Ref VPC
+    PrivateDnsEnabled: true
+    SecurityGroupIds:
+      - !Ref VPCEndpointSecurityGroup

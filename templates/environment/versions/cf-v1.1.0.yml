@@ -6,22 +6,20 @@ Metadata:
 Parameters:
   AppName:
     Type: String
-
   EnvironmentName:
     Type: String
-
   ALBWorkloads:
     Type: String
     Default: ""
-
   ToolsAccountPrincipalARN:
     Type: String
-
   AppDNSName:
     Type: String
     Default: ""
-
   AppDNSDelegationRole:
+    Type: String
+    Default: ""
+  VPCEndpointsWorkloads:
     Type: String
     Default: ""
 
@@ -33,6 +31,8 @@ Conditions:
   ExportHTTPSListener: !And
     - !Condition DelegateDNS
     - !Condition CreateALB
+  CreateVPCEndpoints:
+    !Not [ !Equals [ !Ref VPCEndpointsWorkloads, "" ] ]
 
 Resources:
 {{- if not .ImportVPC}}
